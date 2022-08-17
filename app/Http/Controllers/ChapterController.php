@@ -2,28 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Mentors;
+use App\Models\Chapter;
+use App\Models\Course;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class MentorController extends Controller
+class ChapterController extends Controller
 {
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $allMentor = Mentors::all();
+        $coursesId = $request->query("course_id");
+
+        $chapters = Chapter::query();
+
+        $result = $chapters->when($coursesId, function($query) use ($coursesId){
+            return $query->where("course_id", "=", $coursesId);
+
+        })->get();
 
         return \response()->json([
             "status" => "success",
-            "message" => "berhasil mendapatkan data Mentor",
-            "data" => $allMentor
-
+            "message" => "berhasil mendapatkan data",
+            "data" => $result,
         ]);
-//
+
     }
 
     /**
@@ -33,7 +40,7 @@ class MentorController extends Controller
      */
     public function create()
     {
-
+        //
     }
 
     /**
@@ -44,67 +51,73 @@ class MentorController extends Controller
      */
     public function store(Request $request)
     {
+        $data = $request->all();
 
         $rules = [
             "name" => "required|string",
-            "profile" => "required|url",
-            "email" => "required|email"
+            "course_id" => "required|integer",
         ];
 
-        $data = $request->all();
         $validated = Validator::make($data, $rules);
 
         if($validated->fails()){
             return \response()->json([
                 "status" => "error",
-                "message" => $validated->errors()
+                "message" => $validated->errors(),
             ], 400);
         }
 
-        $newMentors = Mentors::create($data);
+        $newChapter = Chapter::create($validated);
 
-        return response()->json([
-            "status" => "success",
-            "message" => "Mentors has been created.",
-            "data" => $newMentors
-        ], 200);
+        $course_id = $request->input("course_id");
+        $course = Course::find($course_id);
+
+        if(!$course){
+            return \response()->json([
+                "status" => "error",
+                "message" => "Course not found.",
+            ], 400);
+
+
+        }
+
+
+        return \response()->json([
+                "status" => "success",
+                "message" => "Chapter created successfully.",
+                "data" => $newChapter,
+        ],200);
+
     }
+
 
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\Mentors  $mentors
+     * @param  \App\Models\Chapter  $chapter
      * @return \Illuminate\Http\Response
      */
     public function show(Request $request, $id)
     {
-        $mentors = Mentors::find($id);
+        $chapter = Chapter::find($id);
 
-        if(!$mentors) {
-            return response()->json([
+        if(!$chapter){
+
+            return \response()->json([
                 "status" => "error",
-                "message" => "Mentor not found.",
-                "data" => []
-            ], 404);
+                "message" => "Chapter not found.",
+            ], 400);
 
         }
-
-
-        return response()->json([
-            "status" => "success",
-            "message" => "berhasil mendapatkan data mentor",
-            "data" => $mentors
-        ], 200);
     }
-
 
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\Mentors  $mentors
+     * @param  \App\Models\Chapter  $chapter
      * @return \Illuminate\Http\Response
      */
-    public function edit(Mentors $mentors)
+    public function edit(Chapter $chapter)
     {
         //
     }
@@ -113,18 +126,18 @@ class MentorController extends Controller
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Mentors  $mentors
+     * @param  \App\Models\Chapter  $chapter
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Mentors $mentors)
+    public function update(Request $request, Chapter $chapter)
     {
         $rules = [
             "name" => "required|string",
-            "profile" => "required|url",
+            "course_id" => "required|integer",
         ];
 
         $data = $request->all();
-        $validated = Validator::make($data, $rules);
+        $validated = Validator::make( $data, $rules);
 
         if($validated->fails()){
             return \response()->json([
@@ -133,13 +146,13 @@ class MentorController extends Controller
             ], 400);
         }
 
-        $updatedMentors = $mentors->fill($data);
-        $updatedMentors->save();
+        $chapter->fill($data);
+        $chapter->save();
 
-        return response()->json([
+        return \response()->json([
+
             "status" => "success",
-            "message" => "Mentors has been updated.",
-            "data" => $updatedMentors
+            "message" => "Chapters has been updated"
         ], 200);
 
     }
@@ -147,24 +160,29 @@ class MentorController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\Mentors  $mentors
+     * @param  \App\Models\Chapter  $chapter
      * @return \Illuminate\Http\Response
      */
     public function destroy(Request $request, $id)
     {
-        $mentors = Mentors::find($id);
-        if(!$mentors){
+        $chapter = Chapter::find($id);
+
+        if(!$chapter){
+
             return \response()->json([
                 "status" => "error",
-                "message" => "Mentor not found"
-            ], 404);
+                "message" => "Chapter not found.",
+            ], 400);
+
         }
 
-        $mentors->delete();
+        $chapter->delete();
 
         return \response()->json([
             "status" => "success",
-            "message" => "Mentor has been deleted"
+            "message" => "berhasil menghapus Chapter",
         ], 200);
+
+
     }
 }

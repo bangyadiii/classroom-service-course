@@ -15,11 +15,18 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+
+
 Route::prefix("/v1/mentors")->group(function (){
     Route::put("/{mentors}", [MentorController::class, "update"]);
+    Route::get("/{id}", [MentorController::class, "show"]);
+    Route::delete("/{id}", [MentorController::class, "destroy"]);
+    Route::post("/", [MentorController::class, "store"]);
+    Route::get("/", [MentorController::class, "index"]);
+});
+
+Route::prefix("/v1/chapters")->group(function (){
+    Route::put("/{chapter}", [MentorController::class, "update"]);
     Route::get("/{id}", [MentorController::class, "show"]);
     Route::delete("/{id}", [MentorController::class, "destroy"]);
     Route::post("/", [MentorController::class, "store"]);
