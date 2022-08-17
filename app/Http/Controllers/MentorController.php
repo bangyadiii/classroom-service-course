@@ -119,8 +119,8 @@ class MentorController extends Controller
     public function update(Request $request, Mentors $mentors)
     {
         $rules = [
-            "name" => "required|string",
-            "profile" => "required|url",
+            "name" => "string",
+            "profile" => "url",
         ];
 
         $data = $request->all();

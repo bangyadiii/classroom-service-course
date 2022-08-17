@@ -132,8 +132,8 @@ class ChapterController extends Controller
     public function update(Request $request, Chapter $chapter)
     {
         $rules = [
-            "name" => "required|string",
-            "course_id" => "required|integer",
+            "name" => "string",
+            "course_id" => "integer",
         ];
 
         $data = $request->all();
