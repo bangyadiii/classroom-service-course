@@ -3,6 +3,8 @@
 use App\Http\Controllers\ImageCourseController;
 use App\Http\Controllers\LessonController;
 use App\Http\Controllers\MentorController;
+use App\Http\Controllers\MyCourseController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +51,18 @@ Route::prefix("/v1")->group(function(){
     Route::prefix("/image-course")->group(function (){
         Route::delete("/{id}", [ImageCourseController::class, "destroy"]);
         Route::post("/", [ImageCourseController::class, "store"]);
+    });
+
+    Route::prefix("/mycourses")->group(function(){
+        Route::post("/", [MyCourseController::class, "store"]);
+        Route::get("/", [MyCourseController::class, "index"]);
+    });
+
+    Route::prefix("/reviews")->group(function(){
+        Route::post("/", [ReviewController::class, "store"]);
+        Route::put("/{id}", [ReviewController::class, "update"]);
+        Route::delete("/{id}", [ReviewController::class, "destroy"]);
+
     });
 });
 
