@@ -4,10 +4,10 @@ use Illuminate\Support\Facades\Http;
 
 
 function getUser($userId = ''){
-    $url = env("URL_SERVICE_USER") . "/api/v1/auth" . $userId ;
+    $url = env("URL_SERVICE_USER") . "/api/v1/auth/" . $userId ;
 
     try {
-        $response = Http::timeout(10)->get($url);
+        $response = Http::timeout(5)->get($url);
         $data = $response->json();
         $data["http_code"] = $response->getStatusCode();
         return $data;
@@ -35,7 +35,7 @@ function getUserById($userId = []){
             ];
         }
 
-        $response = Http::timeout(10)->get($url, ["user_ids[]" => $userId]);
+        $response = Http::timeout(5)->get($url, ["user_ids[]" => $userId]);
         $data = $response->json();
         $data["http_code"] = $response->getStatusCode();
         return $data;

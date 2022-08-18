@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ImageCourseController;
 use App\Http\Controllers\LessonController;
 use App\Http\Controllers\MentorController;
@@ -29,6 +30,14 @@ Route::prefix("/v1")->group(function(){
         Route::delete("/{id}", [MentorController::class, "destroy"]);
         Route::post("/", [MentorController::class, "store"]);
         Route::get("/", [MentorController::class, "index"]);
+    });
+
+    Route::prefix("/courses")->group(function(){
+        Route::put("/{id}", [CourseController::class, "update"]);
+        Route::delete("/{id}", [CourseController::class, "destroy"]);
+        Route::get("/{id}", [CourseController::class, "show"]);
+        Route::post("/", [CourseController::class, "store"]);
+        Route::get("/", [CourseController::class, "index"]);
     });
 
     Route::prefix("/chapters")->group(function (){

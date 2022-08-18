@@ -20,5 +20,9 @@ class Lesson extends Model
         "updated_at" => "date:Y-m-d H:m:s"
     ];
 
+    public function chapter(){
+        return $this->belongsTo(Chapter::class);
+    }
+
 
 }

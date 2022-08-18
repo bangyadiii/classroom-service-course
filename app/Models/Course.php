@@ -11,6 +11,7 @@ class Course extends Model
 
     protected $fillable = [
         'name',
+        "description",
         'certificate',
         "type",
         "tumbnail",
@@ -18,16 +19,30 @@ class Course extends Model
         "status",
         "level",
         "mentor_id"
-
-
     ];
+
+    protected $casts = [
+        "created_at" => "date:Y-m-d H:m:s",
+        "updated_at" => "date:Y-m-d H:m:s"
+    ];
+
     public function mentor(){
         return $this->belongsTo(Mentors::class);
     }
     public function chapters(){
         return $this->hasMany(Chapter::class);
     }
-    public function images(){
+    public function imageCourse(){
         return $this->hasMany(ImageCourse::class);
     }
+
+    public function reviews(){
+        return $this->hasMany(Review::class);
+    }
+
+    public function myCourse(){
+        return $this->hasMany(MyCourse::class);
+    }
+
+
 }
