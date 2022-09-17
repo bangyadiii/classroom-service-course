@@ -38,6 +38,18 @@ class MyCourseController extends Controller
      */
     public function createPremiumAccess(Request $request)
     {
+        $data = $request->all();
+        $createdCourse = MyCourse::create([
+            'course_id' => $data['course_id'],
+            'user_id' => $data['user_id']
+        ]);
+
+
+        return \response()->json([
+            'status' => "success",
+            'message' => 'Premium Access has been added to this user.',
+            'data' => $createdCourse
+        ], 201);
     }
 
     public function store(Request $request)
