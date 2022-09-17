@@ -20,16 +20,15 @@ class MyCourseController extends Controller
 
         $course = MyCourse::query();
 
-        $res = $course->when($userId, function($query) use ($userId){
+        $res = $course->when($userId, function ($query) use ($userId) {
             return $query->where("user_id", "=", $userId);
         })->with("course")->get();
 
         return \response()->json([
             "status" => "success",
-            "message" => "Berhasil mendapatkan mycourse",
+            "message" => "Berhasil mendapatkan my course",
             "data" => $res
         ]);
-
     }
 
     /**
@@ -37,46 +36,39 @@ class MyCourseController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function createPremiumAccess(Request $request)
     {
-        //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
         $rules = [
-            "course_id" => "required|integer" ,
-            "user_id" => "required|integer"
+            "user_id" => "required|integer",
+            "course_id" => "required|integer",
         ];
 
         $data = $request->all();
 
-        $validated = Validator::make($data,$rules);
+        $validated = Validator::make($data, $rules);
 
-        if($validated->fails()){
+        if ($validated->fails()) {
             return \response()->json([
-                "status" => "error" ,
+                "status" => "error",
                 "message" => $validated->errors()
             ], 400);
         }
 
         $course = Course::find($request->input("course_id"));
 
-        if(!$course){
+        if (!$course) {
             return \response()->json([
-                "status" => "error" ,
+                "status" => "error",
                 "message" => "Course not found."
-            ], 400);
+            ], 404);
         }
         $user = \getUser($request->input("user_id"));
 
-        if($user["status"] === "error"){
+        if ($user["status"] === "error") {
             return \response()->json([
                 "status" => $user["status"],
                 "message" => $user["message"]
@@ -85,69 +77,39 @@ class MyCourseController extends Controller
         $courseId =  $request->input("course_id");
         $userId = $request->input("user_id");
 
-        $isExistCourse = MyCourse::where("course_id", "=",$courseId)
-                ->where("user_id", "=", $userId)
-                ->exist();
+        $isExistCourse = MyCourse::where("course_id", "=", $courseId)
+            ->where("user_id", "=", $userId)
+            ->exists();
 
-        if($isExistCourse){
+        if ($isExistCourse) {
             return \response()->json([
-                "status" => "error" ,
+                "status" => "error",
                 "message" => "This class has been taken "
             ],  409);
         }
 
-        $mycourse = MyCourse::create($data);
-        return \response()->json([
-            "status" => "success" ,
-            "message" => "Berhasil menambahkan kelas",
-            "data" => $mycourse
-        ],  200);
+        if ($course["type"] === "premium" && $course["price"] > 0) {
+            //
+            $res = createOrder([
+                "user" => $user["data"],
+                "course" => $course
+            ]);
 
+            if ($res["status"] === 'error') {
+                return \response()->json([
+                    "status" => $res["status"],
+                    "message" => $res["message"]
+                ], $res["http_code"]);
+            }
 
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\MyCourse  $myCourse
-     * @return \Illuminate\Http\Response
-     */
-    public function show(MyCourse $myCourse)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\MyCourse  $myCourse
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(MyCourse $myCourse)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\MyCourse  $myCourse
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, MyCourse $myCourse)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\MyCourse  $myCourse
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(MyCourse $myCourse)
-    {
-        //
+            return \response()->json($res);
+        } else {
+            $mycourse = MyCourse::create($data);
+            return \response()->json([
+                "status" => "success",
+                "message" => "Berhasil menambahkan kelas",
+                "data" => $mycourse
+            ],  200);
+        }
     }
 }
