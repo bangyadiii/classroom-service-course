@@ -63,7 +63,7 @@ Route::prefix("/v1")->group(function () {
     });
 
     Route::prefix("/mycourses")->group(function () {
-        Route::post("/premium", [MyCourseController::class, "store"]);
+        Route::post("/", [MyCourseController::class, "store"]);
         Route::get("/", [MyCourseController::class, "index"]);
     });
 
