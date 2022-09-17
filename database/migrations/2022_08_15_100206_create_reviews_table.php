@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->string("user_id");
             $table->foreignId("course_id")->constrained("courses")->onDelete("cascade");
-            $table->integer("review")->default(0);
+            $table->integer("rating")->default(0);
             $table->longText("note")->nullable();
             $table->unique(['user_id', "course_id"]);
             $table->timestamps();

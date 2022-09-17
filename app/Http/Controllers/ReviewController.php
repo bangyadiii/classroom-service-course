@@ -43,7 +43,7 @@ class ReviewController extends Controller
         $rules = [
             "user_id" => "required|integer",
             "course_id" => "required|integer",
-            "review" => "required|integer|min:1|max:5",
+            "rating" => "required|integer|min:1|max:5",
             "note" => "string"
         ];
         $data = $request->all();
@@ -103,7 +103,7 @@ class ReviewController extends Controller
         $rules = [
             "user_id" => "integer",
             "course_id" => "integer",
-            "review" => "integer|min:1|max:5",
+            "rating" => "integer|min:1|max:5",
             "note" => "string"
         ];
         $data = $request->all();
