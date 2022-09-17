@@ -16,7 +16,6 @@ class ImageCourseController extends Controller
      */
     public function index()
     {
-
     }
 
     /**
@@ -45,11 +44,11 @@ class ImageCourseController extends Controller
         $data = $request->all();
 
         $validated = Validator::make($data, $rules);
-        if($validated->fails()){
+        if ($validated->fails()) {
             return \response()->json([
                 "status" => "error",
                 "message" => $validated->errors()
-            ]);
+            ], 400);
         }
 
         Course::findOrFail($request->input("course_id"));
@@ -60,8 +59,7 @@ class ImageCourseController extends Controller
             "status" => "success",
             "message" => "Image added successfully",
             "data" => $newImage
-        ]);
-
+        ], 201);
     }
 
     /**
@@ -80,7 +78,6 @@ class ImageCourseController extends Controller
             "message" => "Berhasil mendapatkan image course",
             "data" => $result
         ]);
-
     }
 
     public function edit(ImageCourse $imageCourse)
@@ -104,11 +101,11 @@ class ImageCourseController extends Controller
         $data = $request->all();
         $validated = Validator::make($data, $rules);
 
-        if($validated->fails()){
+        if ($validated->fails()) {
             return \response()->json([
                 "status" => "error",
                 "message" => $validated->errors()
-            ]);
+            ], 400);
         }
 
         Course::findOrFail($request->input("course_id"));
@@ -120,7 +117,7 @@ class ImageCourseController extends Controller
             "status" => "success",
             "message" => "Image updated successfully",
             "data" => $imageCourse
-        ]);
+        ], 200);
     }
 
     /**
@@ -137,8 +134,6 @@ class ImageCourseController extends Controller
         return \response()->json([
             "status" => "success",
             "message" => "Image Course deleted successfully"
-        ]);
-
-
+        ], 200);
     }
 }

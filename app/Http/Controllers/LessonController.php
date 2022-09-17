@@ -7,7 +7,6 @@ use App\Models\Lesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-use function PHPSTORM_META\map;
 
 class LessonController extends Controller
 {
@@ -17,7 +16,7 @@ class LessonController extends Controller
 
         $lesson = Lesson::query();
 
-        $result = $lesson->when($chapterId, function($query) use ($chapterId){
+        $result = $lesson->when($chapterId, function ($query) use ($chapterId) {
             return $query->where("chapter_id", "=", "$chapterId");
         })->get();
 
@@ -26,7 +25,6 @@ class LessonController extends Controller
             "message" => "Berhasil mendapatkan data",
             "data" => $result
         ]);
-
     }
 
     public function store(Request $request)
@@ -42,7 +40,7 @@ class LessonController extends Controller
 
         $validated = Validator::make($data, $rules);
 
-        if($validated->fails()){
+        if ($validated->fails()) {
             return \response()->json([
                 "status" => "error",
                 "message" => $validated->errors()
@@ -51,11 +49,11 @@ class LessonController extends Controller
 
         $chapter = Chapter::find($request->input("chapter_id"));
 
-        if(!$chapter) {
+        if (!$chapter) {
             return \response()->json([
                 "status" => "error",
                 "message" => "Chapter not found",
-            ], 400);
+            ], 404);
         }
 
         $newLesson = Lesson::create($validated);
@@ -64,7 +62,7 @@ class LessonController extends Controller
             "status" => "success",
             "message" => "Lesson has been created",
             "data" => $newLesson
-        ]);
+        ], 201);
     }
 
     public function show(Lesson $lesson)
@@ -73,8 +71,7 @@ class LessonController extends Controller
             "status" => "success",
             "message" => "Berhasil mendapatkan data lesson",
             "data" => $lesson
-        ]);
-
+        ], 200);
     }
 
 
@@ -91,7 +88,7 @@ class LessonController extends Controller
 
         $validated = Validator::make($data, $rules);
 
-        if($validated->fails()){
+        if ($validated->fails()) {
             return \response()->json([
                 "status" => "error",
                 "message" => $validated->errors()
@@ -100,11 +97,11 @@ class LessonController extends Controller
 
         $chapter = Chapter::find($request->input("chapter_id"));
 
-        if(!$chapter) {
+        if (!$chapter) {
             return \response()->json([
                 "status" => "error",
                 "message" => "Chapter not found",
-            ], 400);
+            ], 404);
         }
 
         $lesson->fill($data);
@@ -115,18 +112,23 @@ class LessonController extends Controller
             "status" => "success",
             "message" => "Berhasil update",
             "data" => $lesson
-        ]);
-
+        ], 200);
     }
 
-   public function destroy(Lesson $lesson)
+    public function destroy(Request $request, $id)
     {
-       $lesson->deleteOrFail();
+
+        $lesson = Lesson::find($id);
+        if (!$lesson) {
+            return \response()->json([
+                "status" => "error",
+                "message" => "Lesson not found."
+            ], 404);
+        }
 
         return \response()->json([
             "status" => "success",
             "message" => "berhasil menghapus lesson"
-        ]);
-
+        ], 200);
     }
 }

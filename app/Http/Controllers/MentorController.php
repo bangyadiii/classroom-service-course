@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Mentors;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\ValidatedInput;
 
 class MentorController extends Controller
 {
@@ -23,7 +24,7 @@ class MentorController extends Controller
             "data" => $allMentor
 
         ]);
-//
+        //
     }
 
     /**
@@ -33,7 +34,6 @@ class MentorController extends Controller
      */
     public function create()
     {
-
     }
 
     /**
@@ -48,26 +48,26 @@ class MentorController extends Controller
         $rules = [
             "name" => "required|string",
             "profile" => "required|url",
-            "email" => "required|email"
+            "profession" => "string",
+            "email" => "required|email|unique:mentors"
         ];
 
         $data = $request->all();
-        $validated = Validator::make($data, $rules);
+        $validator = Validator::make($data, $rules);
 
-        if($validated->fails()){
+        if ($validator->fails()) {
             return \response()->json([
                 "status" => "error",
-                "message" => $validated->errors()
+                "message" => $validator->errors()
             ], 400);
         }
-
-        $newMentors = Mentors::create($data);
+        $newMentors = Mentors::create($validator->validated());
 
         return response()->json([
             "status" => "success",
             "message" => "Mentors has been created.",
             "data" => $newMentors
-        ], 200);
+        ], 201);
     }
 
     /**
@@ -80,13 +80,12 @@ class MentorController extends Controller
     {
         $mentors = Mentors::find($id);
 
-        if(!$mentors) {
+        if (!$mentors) {
             return response()->json([
                 "status" => "error",
                 "message" => "Mentor not found.",
                 "data" => []
             ], 404);
-
         }
 
 
@@ -116,24 +115,33 @@ class MentorController extends Controller
      * @param  \App\Models\Mentors  $mentors
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Mentors $mentors)
+    public function update(Request $request,  $id)
     {
+        $mentors = Mentors::find($id);
+        if (!$mentors) {
+            return \response()->json([
+                "status" => "error",
+                "message" => "Mentor not found"
+            ], 404);
+        }
+
         $rules = [
             "name" => "string",
+            "profession" => "string",
             "profile" => "url",
         ];
 
         $data = $request->all();
-        $validated = Validator::make($data, $rules);
+        $validator = Validator::make($data, $rules);
 
-        if($validated->fails()){
+        if ($validator->fails()) {
             return \response()->json([
                 "status" => "error",
-                "message" => $validated->errors()
+                "message" => $validator->errors()
             ], 400);
         }
 
-        $updatedMentors = $mentors->fill($data);
+        $updatedMentors = $mentors->fill($validator->validated());
         $updatedMentors->save();
 
         return response()->json([
@@ -141,7 +149,6 @@ class MentorController extends Controller
             "message" => "Mentors has been updated.",
             "data" => $updatedMentors
         ], 200);
-
     }
 
     /**
@@ -153,7 +160,7 @@ class MentorController extends Controller
     public function destroy(Request $request, $id)
     {
         $mentors = Mentors::find($id);
-        if(!$mentors){
+        if (!$mentors) {
             return \response()->json([
                 "status" => "error",
                 "message" => "Mentor not found"

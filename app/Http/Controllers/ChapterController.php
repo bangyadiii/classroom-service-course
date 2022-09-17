@@ -20,17 +20,15 @@ class ChapterController extends Controller
 
         $chapters = Chapter::query();
 
-        $result = $chapters->when($coursesId, function($query) use ($coursesId){
+        $result = $chapters->when($coursesId, function ($query) use ($coursesId) {
             return $query->where("course_id", "=", $coursesId);
-
         })->get();
 
         return \response()->json([
             "status" => "success",
             "message" => "berhasil mendapatkan data",
             "data" => $result,
-        ]);
-
+        ], 200);
     }
 
     /**
@@ -58,36 +56,30 @@ class ChapterController extends Controller
             "course_id" => "required|integer",
         ];
 
-        $validated = Validator::make($data, $rules);
-
-        if($validated->fails()){
+        $validator = Validator::make($data, $rules);
+        if ($validator->fails()) {
             return \response()->json([
                 "status" => "error",
-                "message" => $validated->errors(),
+                "message" => $validator->errors()
             ], 400);
         }
-
-        $newChapter = Chapter::create($validated);
-
         $course_id = $request->input("course_id");
         $course = Course::find($course_id);
 
-        if(!$course){
+        if (!$course) {
             return \response()->json([
                 "status" => "error",
                 "message" => "Course not found.",
-            ], 400);
-
-
+            ], 404);
         }
 
+        $newChapter = Chapter::create($validator->validated());
 
         return \response()->json([
-                "status" => "success",
-                "message" => "Chapter created successfully.",
-                "data" => $newChapter,
-        ],200);
-
+            "status" => "success",
+            "message" => "Chapter created successfully.",
+            "data" => $newChapter,
+        ], 201);
     }
 
 
@@ -101,14 +93,19 @@ class ChapterController extends Controller
     {
         $chapter = Chapter::find($id);
 
-        if(!$chapter){
+        if (!$chapter) {
 
             return \response()->json([
                 "status" => "error",
                 "message" => "Chapter not found.",
-            ], 400);
-
+            ], 404);
         }
+
+        return \response()->json([
+            "status" => "success",
+            "message" => "Berhasil mendapatkan data.",
+            "data" => $chapter
+        ]);
     }
 
     /**
@@ -129,24 +126,32 @@ class ChapterController extends Controller
      * @param  \App\Models\Chapter  $chapter
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Chapter $chapter)
+    public function update(Request $request, $id)
     {
+        $chapter = Chapter::find($id);
+
+        if (!$chapter) {
+            return \response()->json([
+                "status" => "error",
+                "message" => "Chapter not found"
+            ], 404);
+        }
         $rules = [
             "name" => "string",
             "course_id" => "integer",
         ];
 
         $data = $request->all();
-        $validated = Validator::make( $data, $rules);
+        $validator = Validator::make($data, $rules);
 
-        if($validated->fails()){
+        if ($validator->fails()) {
             return \response()->json([
                 "status" => "error",
-                "message" => $validated->errors()
+                "message" => $validator->errors()
             ], 400);
         }
 
-        $chapter->fill($data);
+        $chapter->fill($validator->validated());
         $chapter->save();
 
         return \response()->json([
@@ -154,26 +159,17 @@ class ChapterController extends Controller
             "status" => "success",
             "message" => "Chapters has been updated"
         ], 200);
-
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Chapter  $chapter
-     * @return \Illuminate\Http\Response
-     */
+
     public function destroy(Request $request, $id)
     {
         $chapter = Chapter::find($id);
-
-        if(!$chapter){
-
+        if (!$chapter) {
             return \response()->json([
                 "status" => "error",
                 "message" => "Chapter not found.",
-            ], 400);
-
+            ], 404);
         }
 
         $chapter->delete();
@@ -182,7 +178,5 @@ class ChapterController extends Controller
             "status" => "success",
             "message" => "berhasil menghapus Chapter",
         ], 200);
-
-
     }
 }
