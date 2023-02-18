@@ -14,7 +14,7 @@ class Course extends Model
         "description",
         'certificate',
         "type",
-        "tumbnail",
+        "thumbnail",
         "price",
         "status",
         "level",
@@ -26,23 +26,35 @@ class Course extends Model
         "updated_at" => "date:Y-m-d H:m:s"
     ];
 
-    public function mentor(){
+    public function mentor()
+    {
         return $this->belongsTo(Mentors::class);
     }
-    public function chapters(){
+    public function chapters()
+    {
         return $this->hasMany(Chapter::class);
     }
-    public function imageCourse(){
+    public function imageCourse()
+    {
         return $this->hasMany(ImageCourse::class);
     }
 
-    public function reviews(){
+    public function reviews()
+    {
         return $this->hasMany(Review::class);
     }
 
-    public function myCourse(){
+    public function myCourse()
+    {
         return $this->hasMany(MyCourse::class);
     }
 
 
+    // deep relational
+    //course lessonss
+
+    public function lessons()
+    {
+        return $this->hasManyThrough(Lesson::class, Chapter::class);
+    }
 }

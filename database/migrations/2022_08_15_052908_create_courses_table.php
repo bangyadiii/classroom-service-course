@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
             $table->string("name");
-            $table->string("description");
+            $table->longText("description");
             $table->boolean("certificate")->nullable();
             $table->string("thumbnail")->nullable();
             $table->integer("price")->default(0);
@@ -25,11 +25,10 @@ return new class extends Migration
             $table->enum("level", ['beginner', "intermediate", "advanced", "all-level"]);
             $table->foreignId("mentor_id")->constrained("mentors")->onDelete("cascade");
             $table->timestamps();
-
         });
     }
 
-   /**
+    /**
      * Reverse the migrations.
      *
      * @return void

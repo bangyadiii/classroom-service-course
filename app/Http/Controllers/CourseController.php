@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Course\CourseCreateRequest;
+use App\Http\Requests\Course\CourseUpdateRequest;
 use App\Models\Course;
 use App\Models\Mentors;
-use App\Models\MyCourse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
@@ -20,63 +21,37 @@ class CourseController extends Controller
     {
         $courses = Course::query();
         $q = $request->query("q");
+        $limit = $request->query("limit");
         $status = $request->query("status");
 
-        $courses->when($q, function ($query) use ($q) {
-            return $query->whereRaw("name LIKE '%" . strtolower($q) . "%'");
-        });
+        if ($q) {
+            $courses->whereRaw("name LIKE '%" . strtolower($q) . "%'");
+        }
 
-        $courses->when($status, function ($query) use ($status) {
-            return $query->where("status", "=", $status);
-        });
+        if ($status) {
+            $courses->where("status", "=", $status);
+        }
 
-        return response()->json([
-            "status" => "success",
-            "message" => "Berhasil mendapatkan data",
-            "data" => $courses->paginate(10)
-        ], Response::HTTP_OK);
+        return $this->success(
+            Response::HTTP_OK,
+            "Getting data successful",
+            $courses->simplePaginate($limit ?? 20)
+        );
     }
 
 
-    public function store(Request $request)
+    public function store(CourseCreateRequest $request)
     {
-        $rules = [
-            "name" => "required|string",
-            "description" => "required|string",
-            "certificate" => "boolean",
-            "type" => "required|string|in:free,premium",
-            "thumbnail" => "url",
-            "price" => "required|integer",
-            "status" => "required|in:draft,published",
-            "level" => "required|in:all-level,beginner,intermediate,advanced",
-            "mentor_id" => "required|integer",
-        ];
-
-        $data = $request->all();
-        $validator = Validator::make($data, $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                "status" => "error",
-                "message" => $validator->errors()
-            ], Response::HTTP_BAD_REQUEST);
-        }
-
         $mentor  = Mentors::find($request->input("mentor_id"));
         if (!$mentor) {
-            return response()->json([
-                "status" => "error",
-                "message" => "Mentor not found",
-            ], Response::HTTP_NOT_FOUND);
+            return $this->error(Response::HTTP_NOT_FOUND, "Mentor not found");
         }
 
-        $newCourse = Course::create($validator->validated());
+        $validated = $request->validated();
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Berhasil menambahkan course",
-            "data" => $newCourse
-        ], Response::HTTP_CREATED);
+        $newCourse = Course::create($validated);
+
+        return $this->success(Response::HTTP_CREATED, "Course has been created", $newCourse);
     }
 
     /**
@@ -85,29 +60,14 @@ class CourseController extends Controller
      * @param  \App\Models\Course  $course
      * @return \Illuminate\Http\Response
      */
-    public function show(Request $request, $id)
+    public function show($id)
     {
 
-        $course = Course::with(["chapters.lessons", "reviews", "mentor",  "imageCourse"])->findOrFail($id);
-        $totalStudent = MyCourse::where("course_id", "=", $course->id)->count();
-        $course["total_student"] = $totalStudent;
+        $course = Course::with(["chapters.lessons", "reviews", "mentor",  "imageCourse"])
+            ->withCount(['myCourse as total_student', "lessons as total_lessons"])
+            ->findOrFail($id);
 
-        return response()->json([
-            "status" => "success",
-            "message" => "berhasil mendapatkan data course",
-            "data" => $course
-        ]);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Course  $course
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Course $course)
-    {
-        //
+        return $this->success(Response::HTTP_OK, "Get course data", $course);
     }
 
     /**
@@ -117,58 +77,25 @@ class CourseController extends Controller
      * @param  \App\Models\Course  $course
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(CourseUpdateRequest $request, $id)
     {
-
         $course = Course::find($id);
 
         if (!$course) {
-            return response()->json([
-                "status" => "error",
-                "message" => "Course not found",
-            ], Response::HTTP_NOT_FOUND);
+            \abort(Response::HTTP_NOT_FOUND, "Course not found");
         }
 
-        $rules = [
-            "name" => "string",
-            "description" => "string",
-            "certificate" => "boolean",
-            "type" => "string|in:free,premium",
-            "thumbnail" => "url",
-            "price" => "integer",
-            "status" => "in:draft,published",
-            "level" => "in:all-level,beginner,intermediate,advanced",
-            "mentor_id" => "integer",
-        ];
-
-        $data = $request->all();
-
-
-        $validator = Validator::make($data, $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                "status" => "error",
-                "message" => $validator->errors()
-            ], Response::HTTP_BAD_GATEWAY);
+        if ($request->mentor_id) {
+            $mentor  = Mentors::find($request->mentor_id);
+            if (!$mentor) {
+                \abort(Response::HTTP_NOT_FOUND, "Mentor not found");
+            }
         }
 
-
-        $mentor  = Mentors::find($request->input("mentor_id"));
-        if (!$mentor) {
-            return response()->json([
-                "status" => "error",
-                "message" => "Mentor not found",
-            ], 404);
-        }
+        $data = $request->validated();
 
         $course->fill($data)->save();
-
-        return \response()->json([
-            "status" => "success",
-            "message" => "Course has been updated.",
-            "data" => $course
-        ]);
+        return $this->success(200, "Course has been updated", $course);
     }
 
     /**
@@ -182,18 +109,11 @@ class CourseController extends Controller
         $course = Course::find($id);
 
         if (!$course) {
-
-            return \response()->json([
-                "status" => "error",
-                "message" => "Course not found",
-            ], Response::HTTP_NOT_FOUND);
+            \abort(Response::HTTP_NOT_FOUND, "course not found");
         }
 
         $course->delete();
 
-        return response()->json([
-            "status" => "success",
-            "message" => "Course deleted"
-        ], Response::HTTP_OK);
+        return $this->success(Response::HTTP_OK, "Course has been deleted");
     }
 }

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Lesson\LessonCreateRequest;
+use App\Http\Requests\Lesson\LessonUpdateRequest;
 use App\Models\Chapter;
 use App\Models\Lesson;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-
+use Illuminate\Http\Response;
 
 class LessonController extends Controller
 {
@@ -15,120 +16,57 @@ class LessonController extends Controller
         $chapterId = $request->query("chapter_id");
 
         $lesson = Lesson::query();
-
-        $result = $lesson->when($chapterId, function ($query) use ($chapterId) {
-            return $query->where("chapter_id", "=", "$chapterId");
-        })->get();
-
-        return \response()->json([
-            "status" => "success",
-            "message" => "Berhasil mendapatkan data",
-            "data" => $result
-        ]);
-    }
-
-    public function store(Request $request)
-    {
-        $rules = [
-            "name" => "required|string",
-            "video" => "required|string",
-            "chapter_id" => "required|integer",
-
-        ];
-
-        $data = $request->all();
-
-        $validated = Validator::make($data, $rules);
-
-        if ($validated->fails()) {
-            return \response()->json([
-                "status" => "error",
-                "message" => $validated->errors()
-            ], 400);
+        if ($chapterId) {
+            $lesson->where("chapter_id", $chapterId);
         }
 
+        $result = $lesson->simplePaginate();
+        return $this->success(Response::HTTP_OK, "Berhasil mendapatkan data", $result);
+    }
+
+    public function store(LessonCreateRequest $request)
+    {
         $chapter = Chapter::find($request->input("chapter_id"));
 
         if (!$chapter) {
-            return \response()->json([
-                "status" => "error",
-                "message" => "Chapter not found",
-            ], 404);
+            \abort(Response::HTTP_NOT_FOUND, "Chapter not found");
         }
 
-        $newLesson = Lesson::create($validated);
+        $newLesson = Lesson::create($request->validated());
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Lesson has been created",
-            "data" => $newLesson
-        ], 201);
+        return $this->success(Response::HTTP_OK, "Lesson has been created", $newLesson);
     }
 
     public function show(Lesson $lesson)
     {
-        return \response()->json([
-            "status" => "success",
-            "message" => "Berhasil mendapatkan data lesson",
-            "data" => $lesson
-        ], 200);
+        return $this->success(Response::HTTP_OK, "Berhasil mendapatkan data lessons", $lesson);
     }
 
 
-    public function update(Request $request, Lesson $lesson)
+    public function update(LessonUpdateRequest $request, Lesson $lesson)
     {
-        $rules = [
-            "name" => "string",
-            "video" => "string",
-            "chapter_id" => "integer",
-
-        ];
-
-        $data = $request->all();
-
-        $validated = Validator::make($data, $rules);
-
-        if ($validated->fails()) {
-            return \response()->json([
-                "status" => "error",
-                "message" => $validated->errors()
-            ], 400);
-        }
-
         $chapter = Chapter::find($request->input("chapter_id"));
 
         if (!$chapter) {
-            return \response()->json([
-                "status" => "error",
-                "message" => "Chapter not found",
-            ], 404);
+            \abort(Response::HTTP_NOT_FOUND, "chapter not found");
         }
 
-        $lesson->fill($data);
+        $lesson->fill($request->validated());
 
         $lesson->save();
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Berhasil update",
-            "data" => $lesson
-        ], 200);
+        return $this->success(Response::HTTP_OK, "Berhasil update lesson", $lesson);
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
-
         $lesson = Lesson::find($id);
         if (!$lesson) {
-            return \response()->json([
-                "status" => "error",
-                "message" => "Lesson not found."
-            ], 404);
+            \abort(Response::HTTP_NOT_FOUND, "Lesson not found");
         }
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "berhasil menghapus lesson"
-        ], 200);
+        $lesson->delete();
+
+        return $this->success(Response::HTTP_OK, "Lesson has been deleted.");
     }
 }

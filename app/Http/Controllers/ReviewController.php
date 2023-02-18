@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Review\ReviewCreateRequest;
+use App\Http\Requests\Review\ReviewUpdateRequest;
 use App\Models\Course;
 use App\Models\MyCourse;
 use App\Models\Review;
-use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 
@@ -38,39 +40,17 @@ class ReviewController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(ReviewCreateRequest $request)
     {
-        $rules = [
-            "user_id" => "required|integer",
-            "course_id" => "required|integer",
-            "rating" => "required|integer|min:1|max:5",
-            "note" => "string"
-        ];
-        $data = $request->all();
-        $validated = Validator::make($data, $rules);
-
-        if ($validated->fails()) {
-            return \response()->json([
-                'status' => 'error',
-                "message" => $validated->errors()
-            ], 400);
-        }
-
         $Course = Course::find($request->input("course_id"));
 
         if (!$Course) {
-            return \response()->json([
-                'status' => 'error',
-                "message" => "Course not found"
-            ], 404);
+            return $this->error(Response::HTTP_NOT_FOUND, "Course not found");
         }
         $anyUser = \getUser($request->input("user_id"));
 
-        if ($anyUser["status"] === "error") {
-            return \response()->json([
-                "status" => $anyUser["status"],
-                "message" => $anyUser["message"]
-            ], $anyUser["http_code"]);
+        if (!$anyUser["meta"]["success"]) {
+            return $this->error($anyUser["meta"]["http_code"], $anyUser["meta"]["message"]);
         }
         $course_id = $request->input("course_id");
         $user_id = $request->input("user_id");
@@ -78,71 +58,35 @@ class ReviewController extends Controller
         $ifReviewed = Review::where("course_id", "=", $course_id)->where("user_id", "=", $user_id)->exists();
 
         if ($ifReviewed) {
-            return \response([
-                "status" => "error",
-                "message" => "This course has been reviewed before."
-            ], 409);
+            return $this->error(Response::HTTP_CONFLICT, "This course has been reviewed before.");
         }
 
-        $review = Review::create($data);
+        $review = Review::create($request->validated());
 
-        return response([
-            "status" => "success",
-            "message" => "Berhasil menambahkan review",
-            "data" => $review
-        ], 200);
+        return $this->success(Response::HTTP_OK, "Berhasil menambahkan review.", $review);
     }
 
-    public function show(Review $review)
+
+    public function update(ReviewUpdateRequest $request, $id)
     {
-        //
-    }
-
-    public function update(Request $request, $id)
-    {
-        $rules = [
-            "user_id" => "integer",
-            "course_id" => "integer",
-            "rating" => "integer|min:1|max:5",
-            "note" => "string"
-        ];
-        $data = $request->all();
-        $validator = Validator::make($data, $rules);
-
-        if ($validator->fails()) {
-            return \response()->json([
-                'status' => 'error',
-                "message" => $validator->errors()
-            ], 400);
-        }
-
         $review = Review::findOrFail($id);
 
         $Course = Course::find($request->input("course_id"));
 
         if (!$Course) {
-            return \response()->json([
-                'status' => 'error',
-                "message" => "Course not found"
-            ], 404);
+            return $this->error(Response::HTTP_NOT_FOUND, "course not found.");
         }
+
         $anyUser = \getUser($request->input("user_id"));
 
         if ($anyUser["status"] === "error") {
-            return \response()->json([
-                "status" => $anyUser["status"],
-                "message" => $anyUser["message"]
-            ], $anyUser["http_code"]);
+            return $this->error($anyUser["http_code"], $anyUser["meta"]["message"]);
         }
 
-        $review->fill($validator->safe()->except(['course_id', "user_id"]));
+        $review->fill($request->safe()->except(['course_id', "user_id"]));
         $review->save();
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Berhasil mengedit review",
-            "data" => $review
-        ]);
+        return $this->success(Response::HTTP_OK, "Review has been updated", $review);
     }
 
     /**
@@ -151,21 +95,16 @@ class ReviewController extends Controller
      * @param  \App\Models\MyCourse  $myCourse
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
         $review = Review::find($id);
 
         if (!$review) {
-            return \response()->json([
-                "status" => "error",
-                "message" => "Review not found."
-            ], 404);
+            return $this->error(Response::HTTP_NOT_FOUND, "Review not found");
         }
 
         $review->delete();
-        return \response()->json([
-            "status" => "success",
-            "message" => "Berhasil menghapus review",
-        ], 200);
+
+        return $this->success(Response::HTTP_OK, "Berhasil menghapus review");
     }
 }

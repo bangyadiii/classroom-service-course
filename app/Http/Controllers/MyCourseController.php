@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MyCourse\MyCourseCreateRequest;
 use App\Models\Course;
 use App\Models\MyCourse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Response;
 
 class MyCourseController extends Controller
 {
@@ -18,17 +19,15 @@ class MyCourseController extends Controller
     {
         $userId = $request->query("user_id");
 
-        $course = MyCourse::query();
+        $query = MyCourse::query()->with("course");
 
-        $res = $course->when($userId, function ($query) use ($userId) {
-            return $query->where("user_id", "=", $userId);
-        })->with("course")->get();
+        if ($userId) {
+            $query->where("user_id", $userId);
+        }
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Berhasil mendapatkan my course",
-            "data" => $res
-        ]);
+        $courses = $query->simplePaginate();
+
+        return $this->success(200, "Get all my course", $courses);
     }
 
     /**
@@ -45,46 +44,20 @@ class MyCourseController extends Controller
         ]);
 
 
-        return \response()->json([
-            'status' => "success",
-            'message' => 'Premium Access has been added to this user.',
-            'data' => $createdCourse
-        ], 201);
+        return $this->success(Response::HTTP_CREATED, "Premium Access has been added to current user", $createdCourse);
     }
 
-    public function store(Request $request)
+    public function store(MyCourseCreateRequest $request)
     {
-        $rules = [
-            "user_id" => "required|integer",
-            "course_id" => "required|integer",
-        ];
-
-        $data = $request->all();
-
-        $validated = Validator::make($data, $rules);
-
-        if ($validated->fails()) {
-            return \response()->json([
-                "status" => "error",
-                "message" => $validated->errors()
-            ], 400);
-        }
-
         $course = Course::find($request->input("course_id"));
 
         if (!$course) {
-            return \response()->json([
-                "status" => "error",
-                "message" => "Course not found."
-            ], 404);
+            return $this->error(Response::HTTP_NOT_FOUND, "Course not found", $request->course_id);
         }
         $user = \getUser($request->input("user_id"));
 
-        if ($user["status"] === "error") {
-            return \response()->json([
-                "status" => $user["status"],
-                "message" => $user["message"]
-            ], $user["http_code"]);
+        if (!$user["meta"]["success"]) {
+            return $this->error($user["meta"]["http_code"], $user["meta"]["message"]);
         }
         $courseId =  $request->input("course_id");
         $userId = $request->input("user_id");
@@ -94,34 +67,23 @@ class MyCourseController extends Controller
             ->exists();
 
         if ($isExistCourse) {
-            return \response()->json([
-                "status" => "error",
-                "message" => "This class has been taken "
-            ],  409);
+            return $this->error(Response::HTTP_CONFLICT, "This class has been taken before");
         }
 
         if ($course["type"] === "premium" && $course["price"] > 0) {
-            //
             $res = createOrder([
                 "user" => $user["data"],
                 "course" => $course
             ]);
 
-            if ($res["status"] === 'error') {
-                return \response()->json([
-                    "status" => $res["status"],
-                    "message" => $res["message"]
-                ], $res["http_code"]);
+            if (!$res["meta"]["success"]) {
+                return $this->error($res["meta"]["http_code"], $res["meta"]["message"]);
             }
 
-            return \response()->json($res);
+            return $this->success($res["meta"]["http_code"], $res["meta"]["message"], $res["data"]);
         } else {
-            $mycourse = MyCourse::create($data);
-            return \response()->json([
-                "status" => "success",
-                "message" => "Berhasil menambahkan kelas",
-                "data" => $mycourse
-            ],  200);
+            $mycourse = MyCourse::create($request->validated());
+            return $this->success(Response::HTTP_OK, "Berhasil menambahkan kelas", $mycourse);
         }
     }
 }

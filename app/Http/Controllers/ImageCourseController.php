@@ -2,31 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ImageCourse\ImageCourseCreateRequest;
+use App\Http\Requests\ImageCourse\ImageCourseUpdateRequest;
 use App\Models\Course;
 use App\Models\ImageCourse;
+use App\Traits\ResponseFormatter;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
 
 class ImageCourseController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-    }
+    use ResponseFormatter;
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
 
     /**
      * Store a newly created resource in storage.
@@ -34,32 +22,18 @@ class ImageCourseController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(ImageCourseCreateRequest $request)
     {
-
-        $rules = [
-            "course_id" => "required|integer",
-            "image" => "required|url",
-        ];
-        $data = $request->all();
-
-        $validated = Validator::make($data, $rules);
-        if ($validated->fails()) {
-            return \response()->json([
-                "status" => "error",
-                "message" => $validated->errors()
-            ], 400);
-        }
-
         Course::findOrFail($request->input("course_id"));
 
-        $newImage = ImageCourse::create($validated);
+        $result = \postCourseImage(["image" => $request->images]);
+        if ($result['meta']["status"] === 'error') {
+            \abort(Response::HTTP_NOT_FOUND, "Course not found");
+        }
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Image added successfully",
-            "data" => $newImage
-        ], 201);
+        $newImage = ImageCourse::create($request->validated());
+
+        return $this->success(201, "Image added successfully", $newImage);
     }
 
     /**
@@ -68,21 +42,11 @@ class ImageCourseController extends Controller
      * @param  \App\Models\ImageCourse  $imageCourse
      * @return \Illuminate\Http\Response
      */
-    public function show(Request $request, $id)
+    public function show($id)
     {
-
         $result = ImageCourse::findOrFail($id);
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Berhasil mendapatkan image course",
-            "data" => $result
-        ]);
-    }
-
-    public function edit(ImageCourse $imageCourse)
-    {
-        //
+        return $this->success(200, "Get image course succcessful", $result);
     }
 
     /**
@@ -92,32 +56,14 @@ class ImageCourseController extends Controller
      * @param  \App\Models\ImageCourse  $imageCourse
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, ImageCourse $imageCourse)
+    public function update(ImageCourseUpdateRequest $request, ImageCourse $imageCourse)
     {
-        $rules = [
-            "course_id" => "integer",
-            "image" => "url",
-        ];
-        $data = $request->all();
-        $validated = Validator::make($data, $rules);
-
-        if ($validated->fails()) {
-            return \response()->json([
-                "status" => "error",
-                "message" => $validated->errors()
-            ], 400);
-        }
-
         Course::findOrFail($request->input("course_id"));
 
-        $imageCourse->fill($data);
+        $imageCourse->fill($request->validated());
         $imageCourse->save();
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Image updated successfully",
-            "data" => $imageCourse
-        ], 200);
+        return $this->success(200, "Update image course succcessful", $imageCourse);
     }
 
     /**
@@ -126,14 +72,11 @@ class ImageCourseController extends Controller
      * @param  \App\Models\ImageCourse  $imageCourse
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
         $data = ImageCourse::findOrFail($id);
         $data->delete();
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Image Course deleted successfully"
-        ], 200);
+        return $this->success(200, "Image Course deleted successfully");
     }
 }

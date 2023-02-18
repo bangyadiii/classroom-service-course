@@ -2,14 +2,21 @@
 
 namespace App\Exceptions;
 
+use App\Traits\ResponseFormatter;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
 {
+    use ResponseFormatter;
     /**
      * A list of exception types with their corresponding custom log levels.
      *
@@ -46,29 +53,39 @@ class Handler extends ExceptionHandler
     public function register()
     {
 
-        $this->renderable(function (ValidationException $e, $request) {
+        $this->renderable(function (Throwable $th, $request) {
+            if ($request->is("api/*")) {
+                if ($th instanceof ValidationException) {
+                    return $this->error(
+                        Response::HTTP_UNPROCESSABLE_ENTITY,
+                        $th->getMessage(),
+                        $th->errors()
+                    );
+                } elseif ($th instanceof NotFoundHttpException) {
 
-            if ($request->wantsJson()) {
-                return \response()->json([
-                    "status" => "error",
-                    "message" => $e->getMessage(),
-                    "errors" => $e->errors()
-                ], 400);
+                    return $this->error(
+                        Response::HTTP_NOT_FOUND,
+                        "NOT FOUND",
+                        $th->getMessage()
+                    );
+                } elseif ($th instanceof UnauthorizedHttpException) {
+
+                    return $this->error(
+                        Response::HTTP_UNAUTHORIZED,
+                        "Unauthorized",
+                        $th->getMessage()
+                    );
+                } elseif ($th instanceof BadRequestHttpException) {
+
+                    return $this->error(
+                        Response::HTTP_BAD_REQUEST,
+                        "Bad Request",
+                        $th->getMessage()
+                    );
+                } elseif ($th instanceof AccessDeniedHttpException) {
+                    return $this->error(Response::HTTP_FORBIDDEN, "FORBIDDEN", $th->getMessage());
+                }
             }
-        });
-
-        $this->renderable(function (NotFoundHttpException $e, $request) {
-
-            if ($request->wantsJson()) {
-                return \response()->json([
-                    "status" => "error",
-                    "message" => "404 Not Found"
-                ], 404);
-            }
-        });
-
-        $this->reportable(function (Throwable $e) {
-            //
         });
     }
 }

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Chapter\ChapterCreateRequest;
+use App\Http\Requests\Chapter\ChapterUpdateRequest;
 use App\Models\Chapter;
 use App\Models\Course;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Response;
 
 class ChapterController extends Controller
 {
@@ -17,28 +19,16 @@ class ChapterController extends Controller
     public function index(Request $request)
     {
         $coursesId = $request->query("course_id");
+        $limit = $request->query("limit");
 
         $chapters = Chapter::query();
+        if ($coursesId) {
+            $chapters->where("course_id", $coursesId);
+        }
 
-        $result = $chapters->when($coursesId, function ($query) use ($coursesId) {
-            return $query->where("course_id", "=", $coursesId);
-        })->get();
+        $result = $chapters->simplePaginate($limit ?? 20);
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "berhasil mendapatkan data",
-            "data" => $result,
-        ], 200);
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
+        return $this->success(200, "Berhasil mendapatkan data", $result);
     }
 
     /**
@@ -47,39 +37,18 @@ class ChapterController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(ChapterCreateRequest $request)
     {
-        $data = $request->all();
-
-        $rules = [
-            "name" => "required|string",
-            "course_id" => "required|integer",
-        ];
-
-        $validator = Validator::make($data, $rules);
-        if ($validator->fails()) {
-            return \response()->json([
-                "status" => "error",
-                "message" => $validator->errors()
-            ], 400);
-        }
         $course_id = $request->input("course_id");
         $course = Course::find($course_id);
 
         if (!$course) {
-            return \response()->json([
-                "status" => "error",
-                "message" => "Course not found.",
-            ], 404);
+            abort(Response::HTTP_NOT_FOUND, "NOT FOUND");
         }
 
-        $newChapter = Chapter::create($validator->validated());
+        $newChapter = Chapter::create($request->validated());
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Chapter created successfully.",
-            "data" => $newChapter,
-        ], 201);
+        return $this->success(201, "Chapter created successfully", $newChapter);
     }
 
 
@@ -89,35 +58,17 @@ class ChapterController extends Controller
      * @param  \App\Models\Chapter  $chapter
      * @return \Illuminate\Http\Response
      */
-    public function show(Request $request, $id)
+    public function show($id)
     {
         $chapter = Chapter::find($id);
 
         if (!$chapter) {
-
-            return \response()->json([
-                "status" => "error",
-                "message" => "Chapter not found.",
-            ], 404);
+            \abort(Response::HTTP_NOT_FOUND, "NOT_FOUND");
         }
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "Berhasil mendapatkan data.",
-            "data" => $chapter
-        ]);
+        return $this->success(200, "Berhasil mendapatkan data", $chapter);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Chapter  $chapter
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Chapter $chapter)
-    {
-        //
-    }
 
     /**
      * Update the specified resource in storage.
@@ -126,57 +77,29 @@ class ChapterController extends Controller
      * @param  \App\Models\Chapter  $chapter
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(ChapterUpdateRequest $request, $id)
     {
         $chapter = Chapter::find($id);
 
         if (!$chapter) {
-            return \response()->json([
-                "status" => "error",
-                "message" => "Chapter not found"
-            ], 404);
+            \abort(Response::HTTP_NOT_FOUND, "NOT_FOUND");
         }
-        $rules = [
-            "name" => "string",
-            "course_id" => "integer",
-        ];
-
-        $data = $request->all();
-        $validator = Validator::make($data, $rules);
-
-        if ($validator->fails()) {
-            return \response()->json([
-                "status" => "error",
-                "message" => $validator->errors()
-            ], 400);
-        }
-
-        $chapter->fill($validator->validated());
+        $chapter->fill($request->validated());
         $chapter->save();
 
-        return \response()->json([
-
-            "status" => "success",
-            "message" => "Chapters has been updated"
-        ], 200);
+        return $this->success(200, "Chapter has been updated", $chapter->fresh());
     }
 
 
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
         $chapter = Chapter::find($id);
         if (!$chapter) {
-            return \response()->json([
-                "status" => "error",
-                "message" => "Chapter not found.",
-            ], 404);
+            \abort(Response::HTTP_NOT_FOUND, "NOT_FOUND");
         }
 
         $chapter->delete();
 
-        return \response()->json([
-            "status" => "success",
-            "message" => "berhasil menghapus Chapter",
-        ], 200);
+        return $this->success(200, "Berhasil menghapus chapter");
     }
 }
