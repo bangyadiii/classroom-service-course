@@ -16,19 +16,19 @@ return new class extends Migration
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
             $table->string("name");
+            $table->longText("description");
             $table->boolean("certificate")->nullable();
             $table->string("thumbnail")->nullable();
             $table->integer("price")->default(0);
             $table->enum("type", ['free', 'premium']);
             $table->enum("status", ["draft", "published"]);
-            $table->enum("level", ['beginner', "intermedite", "advanced"]);
+            $table->enum("level", ['beginner', "intermediate", "advanced", "all-level"]);
             $table->foreignId("mentor_id")->constrained("mentors")->onDelete("cascade");
             $table->timestamps();
-
         });
     }
 
-   /**
+    /**
      * Reverse the migrations.
      *
      * @return void

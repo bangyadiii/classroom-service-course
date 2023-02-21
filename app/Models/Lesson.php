@@ -14,5 +14,15 @@ class Lesson extends Model
         "video",
         "chapter_id"
     ];
-   
+
+    protected $casts = [
+        "created_at" => "date:Y-m-d H:m:s",
+        "updated_at" => "date:Y-m-d H:m:s"
+    ];
+
+    public function chapter(){
+        return $this->belongsTo(Chapter::class);
+    }
+
+
 }

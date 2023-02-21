@@ -2,11 +2,21 @@
 
 namespace App\Exceptions;
 
+use App\Traits\ResponseFormatter;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
 {
+    use ResponseFormatter;
     /**
      * A list of exception types with their corresponding custom log levels.
      *
@@ -35,7 +45,6 @@ class Handler extends ExceptionHandler
         'password',
         'password_confirmation',
     ];
-
     /**
      * Register the exception handling callbacks for the application.
      *
@@ -43,8 +52,40 @@ class Handler extends ExceptionHandler
      */
     public function register()
     {
-        $this->reportable(function (Throwable $e) {
-            //
+
+        $this->renderable(function (Throwable $th, $request) {
+            if ($request->is("api/*")) {
+                if ($th instanceof ValidationException) {
+                    return $this->error(
+                        Response::HTTP_UNPROCESSABLE_ENTITY,
+                        $th->getMessage(),
+                        $th->errors()
+                    );
+                } elseif ($th instanceof NotFoundHttpException) {
+
+                    return $this->error(
+                        Response::HTTP_NOT_FOUND,
+                        "NOT FOUND",
+                        $th->getMessage()
+                    );
+                } elseif ($th instanceof UnauthorizedHttpException) {
+
+                    return $this->error(
+                        Response::HTTP_UNAUTHORIZED,
+                        "Unauthorized",
+                        $th->getMessage()
+                    );
+                } elseif ($th instanceof BadRequestHttpException) {
+
+                    return $this->error(
+                        Response::HTTP_BAD_REQUEST,
+                        "Bad Request",
+                        $th->getMessage()
+                    );
+                } elseif ($th instanceof AccessDeniedHttpException) {
+                    return $this->error(Response::HTTP_FORBIDDEN, "FORBIDDEN", $th->getMessage());
+                }
+            }
         });
     }
 }
